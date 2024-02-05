@@ -11,7 +11,7 @@
         android:id="@+id/channelScroller"
         android:layout_gravity="top|start|center"
         android:background="@color/channel_scroller_bg"
-        android:layout_marginTop="210sp"
+        android:layout_marginTop="270sp"
         android:focusable="false"
         android:focusableInTouchMode="false"
         android:layout_marginBottom="20sp">
@@ -67,6 +67,40 @@
             android:gravity="center_vertical" />
     </HorizontalScrollView>
 
+    <HorizontalScrollView
+        android:id="@+id/groupTabsScroller"
+        android:layout_width="match_parent"
+        android:layout_height="35sp"
+        android:layout_above="@+id/timelineHScroller"
+        android:layout_toEndOf="@+id/channelScroller"
+        android:background="@color/timeline_bg"
+        android:visibility="gone"
+        android:focusable="false"
+        android:focusableInTouchMode="false">
+
+        <LinearLayout
+            android:id="@+id/groupTabs"
+            android:orientation="horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:paddingStart="10sp"
+            android:paddingEnd="10sp" />
+    </HorizontalScrollView>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="35sp"
+        android:text="@string/lbl_groups"
+        android:id="@+id/groupLabel"
+        android:layout_above="@+id/timelineHScroller"
+        android:layout_toStartOf="@+id/groupTabsScroller"
+        android:layout_alignParentStart="true"
+        android:background="@color/timeline_bg"
+        android:gravity="center"
+        android:visibility="gone"
+        android:textSize="14sp" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="30sp"
@@ -117,6 +151,62 @@
         android:layout_alignEnd="@+id/title"
         android:id="@+id/infoRow" />
 
+    <LinearLayout
+        android:id="@+id/buttonRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_above="@+id/groupTabsScroller"
+        android:layout_toEndOf="@+id/channelScroller"
+        android:layout_marginBottom="10sp"
+        android:paddingEnd="40sp">
+
+        <ImageButton
+            android:id="@+id/resetButton"
+            style="@style/Button.Icon"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_marginEnd="10sp"
+            android:src="@drawable/ic_time"
+            android:scaleType="fitCenter"
+            android:visibility="gone"
+            android:padding="6dp"
+            android:background="@drawable/jellyfin_button" />
+
+        <ImageButton
+            android:id="@+id/dateButton"
+            style="@style/Button.Icon"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_marginEnd="10sp"
+            android:src="@drawable/ic_calendar"
+            android:scaleType="fitCenter"
+            android:padding="6dp"
+            android:background="@drawable/jellyfin_button" />
+
+        <ImageButton
+            android:id="@+id/optionsButton"
+            style="@style/Button.Icon"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_marginEnd="10sp"
+            android:src="@drawable/ic_settings"
+            android:padding="3dp"
+            android:background="@drawable/jellyfin_button"
+            android:scaleType="fitCenter" />
+
+        <ImageButton
+            android:id="@+id/filterButton"
+            style="@style/Button.Icon"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:src="@drawable/ic_filter"
+            android:padding="3dp"
+            android:background="@drawable/jellyfin_button"
+            android:scaleType="fitCenter" />
+    </LinearLayout>
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -125,8 +215,7 @@
         android:layout_marginEnd="20sp"
         android:layout_below="@+id/infoRow"
         android:layout_toEndOf="@+id/programImage"
-        android:layout_above="@+id/timelineHScroller"
-        android:layout_toStartOf="@+id/clock"
+        android:layout_above="@+id/buttonRow"
         android:layout_marginBottom="10sp"
         android:layout_marginTop="5sp"
         android:ellipsize="end"
@@ -159,65 +248,6 @@
         android:textSize="12sp"
         android:textColor="@color/grey_light"
         android:fontFamily="sans-serif-light" />
-
-    <ImageButton
-        android:id="@+id/optionsButton"
-        style="@style/Button.Icon"
-        android:layout_width="25dp"
-        android:layout_height="25dp"
-        android:layout_marginEnd="40sp"
-        android:layout_alignParentEnd="true"
-        android:layout_above="@+id/timelineHScroller"
-        android:layout_marginBottom="10sp"
-        android:src="@drawable/ic_settings"
-        android:padding="3dp"
-        android:background="@drawable/jellyfin_button"
-        android:scaleType="fitCenter" />
-
-    <ImageButton
-        android:id="@+id/filterButton"
-        style="@style/Button.Icon"
-        android:layout_width="25dp"
-        android:layout_height="25dp"
-        android:layout_marginEnd="10sp"
-        android:layout_toStartOf="@id/optionsButton"
-        android:layout_above="@+id/timelineHScroller"
-        android:layout_marginBottom="10sp"
-        android:src="@drawable/ic_filter"
-        android:padding="3dp"
-        android:background="@drawable/jellyfin_button"
-        android:scaleType="fitCenter" />
-
-    <ImageButton
-        android:id="@+id/dateButton"
-        style="@style/Button.Icon"
-        android:layout_width="25dp"
-        android:layout_height="25dp"
-        android:layout_marginEnd="10sp"
-        android:layout_alignParentEnd="false"
-        android:layout_above="@+id/timelineHScroller"
-        android:layout_marginBottom="10sp"
-        android:src="@drawable/ic_calendar"
-        android:scaleType="fitCenter"
-        android:padding="6dp"
-        android:background="@drawable/jellyfin_button"
-        android:layout_toStartOf="@+id/filterButton" />
-
-    <ImageButton
-        android:id="@+id/resetButton"
-        style="@style/Button.Icon"
-        android:layout_width="25dp"
-        android:layout_height="25dp"
-        android:layout_marginEnd="10sp"
-        android:layout_alignParentEnd="false"
-        android:layout_above="@+id/timelineHScroller"
-        android:layout_marginBottom="10sp"
-        android:src="@drawable/ic_time"
-        android:scaleType="fitCenter"
-        android:visibility="gone"
-        android:padding="6dp"
-        android:background="@drawable/jellyfin_button"
-        android:layout_toStartOf="@+id/dateButton" />
 
     <RelativeLayout
         android:layout_width="fill_parent"

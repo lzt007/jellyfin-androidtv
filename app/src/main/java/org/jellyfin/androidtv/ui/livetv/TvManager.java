@@ -40,7 +40,10 @@ import java.util.function.Function;
 import timber.log.Timber;
 
 public class TvManager {
-    private static List<BaseItemDto> allChannels;
+    private static List<BaseItemDto> masterChannelList; // Holds the complete list of channels
+    private static List<BaseItemDto> allChannels; // Holds the currently displayed channels (filtered by group)
+    private static List<org.jellyfin.androidtv.data.model.ChannelsWithGroups> allChannelsWithGroups;
+    private static String selectedGroupName = null; // null means "All Channels"
     private static UUID[] channelIds;
     private static HashMap<UUID, ArrayList<BaseItemDto>> mProgramsDict = new HashMap<>();
     private static LocalDateTime needLoadTime;
@@ -94,16 +97,107 @@ public class TvManager {
     }
 
     public static void loadAllChannels(Fragment fragment, Function<Integer, Void> outerResponse) {
-        TvManagerHelperKt.loadLiveTvChannels(fragment, channels -> {
-            if (channels != null) {
-                allChannels = new ArrayList<>(channels);
+        TvManagerHelperKt.loadLiveTvChannelsGrouped(fragment, (groupedChannels, channels) -> {
+            if (channels != null && groupedChannels != null) {
+                allChannelsWithGroups = groupedChannels;
+                masterChannelList = new ArrayList<>(channels);
+                
+                // Re-apply current filter if exists, or reset to all
+                if (selectedGroupName != null) {
+                    allChannels = getChannelsForGroup(selectedGroupName);
+                } else {
+                    allChannels = new ArrayList<>(channels);
+                }
+                
                 outerResponse.apply(fillChannelIds());
             } else {
-                outerResponse.apply(0);
+                // Fallback to old API if grouped API fails
+                TvManagerHelperKt.loadLiveTvChannels(fragment, fallbackChannels -> {
+                    if (fallbackChannels != null) {
+                        allChannelsWithGroups = null; // No groups available
+                        masterChannelList = new ArrayList<>(fallbackChannels);
+                        allChannels = new ArrayList<>(fallbackChannels);
+                        selectedGroupName = null;
+                        outerResponse.apply(fillChannelIds());
+                    } else {
+                        outerResponse.apply(0);
+                    }
+                    return null;
+                });
             }
             return null;
         });
     }
+
+    public static List<org.jellyfin.androidtv.data.model.ChannelsWithGroups> getChannelGroups() {
+        return allChannelsWithGroups;
+    }
+
+    public static String getSelectedGroup() {
+        return selectedGroupName;
+    }
+
+    public static void setSelectedGroup(String groupName) {
+        selectedGroupName = groupName;
+        // Update allChannels to reflect the selected group
+        allChannels = getChannelsForGroup(groupName);
+        // Important: Re-fill independent channelIds array which is used for horizontal scrolling and program fetching
+        fillChannelIds();
+        // Clear program dictionary cache to force reload for new view if needed, 
+        // effectively optimizing memory but may need re-fetching
+        // Actually, better to keep cache valid, but forceReload flag might be needed if we want fresh data
+        // For now, just updating the channel list is enough for the UI to query correct data
+    }
+
+    public static List<BaseItemDto> getChannelsForGroup(String groupName) {
+        if (allChannelsWithGroups == null) {
+            return masterChannelList != null ? masterChannelList : new ArrayList<>(); // No groups, return all channels
+        }
+
+        if (groupName == null) {
+            return masterChannelList != null ? masterChannelList : new ArrayList<>(); // "All Channels" selected
+        }
+
+        // Special handling for "Uncategorized" group
+        if ("未分类".equals(groupName) || "Uncategorized".equals(groupName)) { // Handle both localized and English string just in case, though usually passed from UI
+            // Return channels that are not in any group
+            List<BaseItemDto> uncategorizedChannels = new ArrayList<>();
+            List<BaseItemDto> categorizedChannels = new ArrayList<>();
+            
+            for (org.jellyfin.androidtv.data.model.ChannelsWithGroups group : allChannelsWithGroups) {
+                if (group.getName() != null && !group.getName().isEmpty()) {
+                    categorizedChannels.addAll(group.getChannels());
+                }
+            }
+            
+            List<BaseItemDto> sourceList = masterChannelList != null ? masterChannelList : new ArrayList<>();
+            
+            for (BaseItemDto channel : sourceList) {
+                boolean isCategorized = false;
+                for (BaseItemDto categorized : categorizedChannels) {
+                    if (channel.getId().equals(categorized.getId())) {
+                        isCategorized = true;
+                        break;
+                    }
+                }
+                if (!isCategorized) {
+                    uncategorizedChannels.add(channel);
+                }
+            }
+            
+            return uncategorizedChannels;
+        }
+
+        // Find the group and return its channels
+        for (org.jellyfin.androidtv.data.model.ChannelsWithGroups group : allChannelsWithGroups) {
+            if (groupName.equals(group.getName())) {
+                return group.getChannels();
+            }
+        }
+
+        return new ArrayList<>(); // Group not found
+    }
+
 
     private static int fillChannelIds() {
         int ndx = 0;

@@ -81,6 +81,9 @@ public class LiveTvGuideFragment extends Fragment implements LiveTvGuide, View.O
     private HorizontalScrollView mTimelineScroller;
     private View mSpinner;
     private View mResetButton;
+    private HorizontalScrollView mGroupTabsScroller;
+    private LinearLayout mGroupTabs;
+    private View mGroupLabel;
 
     BaseItemDto mSelectedProgram;
     RelativeLayout mSelectedProgramView;
@@ -163,6 +166,10 @@ public class LiveTvGuideFragment extends Fragment implements LiveTvGuide, View.O
             }
         });
 
+        mGroupTabsScroller = binding.groupTabsScroller;
+        mGroupTabs = binding.groupTabs;
+        mGroupLabel = binding.groupLabel;
+
         mProgramRows.setFocusable(false);
         mChannelScroller = binding.channelScroller;
         ObservableScrollView programVScroller = binding.programVScroller;
@@ -225,6 +232,7 @@ public class LiveTvGuideFragment extends Fragment implements LiveTvGuide, View.O
 
             mAllChannels = TvManager.getAllChannels();
             if (!mAllChannels.isEmpty()) {
+                populateGroupTabs(); // Populate group tabs
                 displayChannels(ndx, PAGE_SIZE);
             } else {
                 mSpinner.setVisibility(View.GONE);
@@ -778,6 +786,123 @@ public class LiveTvGuideFragment extends Fragment implements LiveTvGuide, View.O
                             return;
                         }
                     }
+                }
+            }
+        }
+    }
+
+    private void populateGroupTabs() {
+        List<org.jellyfin.androidtv.data.model.ChannelsWithGroups> channelGroups = TvManager.getChannelGroups();
+        
+        if (channelGroups == null || channelGroups.isEmpty()) {
+            // No groups available, hide the group tabs
+            mGroupTabsScroller.setVisibility(View.GONE);
+            mGroupLabel.setVisibility(View.GONE);
+            return;
+        }
+
+        // Show group tabs
+        mGroupTabsScroller.setVisibility(View.VISIBLE);
+        mGroupLabel.setVisibility(View.VISIBLE);
+        mGroupTabs.removeAllViews();
+
+        // Add "All Channels" tab
+        addGroupTab(getString(R.string.all_channels), null);
+
+        // Add tabs for each group
+        for (org.jellyfin.androidtv.data.model.ChannelsWithGroups group : channelGroups) {
+            if (group.getName() != null && !group.getName().isEmpty()) {
+                addGroupTab(group.getName(), group.getName());
+            }
+        }
+
+        // Add "Uncategorized" tab if there are uncategorized channels
+        List<org.jellyfin.sdk.model.api.BaseItemDto> uncategorizedChannels = TvManager.getChannelsForGroup(getString(R.string.lbl_uncategorized));
+        if (uncategorizedChannels != null && !uncategorizedChannels.isEmpty()) {
+            addGroupTab(getString(R.string.lbl_uncategorized), getString(R.string.lbl_uncategorized));
+        }
+
+        // Highlight the currently selected tab
+        updateGroupTabSelection();
+    }
+
+    private void addGroupTab(final String displayName, final String groupName) {
+        TextView tabButton = new TextView(requireContext());
+        tabButton.setText(displayName);
+        tabButton.setTextSize(14);
+        tabButton.setPadding(
+                Utils.convertDpToPixel(requireContext(), 15),
+                Utils.convertDpToPixel(requireContext(), 8),
+                Utils.convertDpToPixel(requireContext(), 15),
+                Utils.convertDpToPixel(requireContext(), 8)
+        );
+        tabButton.setFocusable(true);
+        tabButton.setClickable(true);
+        tabButton.setBackgroundResource(R.drawable.jellyfin_button);
+        
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+        );
+        params.setMarginEnd(Utils.convertDpToPixel(requireContext(), 10));
+        tabButton.setLayoutParams(params);
+
+        tabButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onGroupTabClicked(groupName);
+            }
+        });
+
+        // Store the group name as a tag for later reference
+        tabButton.setTag(groupName);
+        mGroupTabs.addView(tabButton);
+    }
+
+    private void onGroupTabClicked(String groupName) {
+        TvManager.setSelectedGroup(groupName);
+        updateGroupTabSelection();
+        
+        // Filter channels based on selected group (no API call)
+        mAllChannels = TvManager.getChannelsForGroup(groupName);
+        if (mAllChannels != null && !mAllChannels.isEmpty()) {
+            // Redisplay channels with the filtered list
+            mProgramRows.removeAllViews();
+            mChannels.removeAllViews();
+            mChannelStatus.setText("");
+            mFilterStatus.setText("");
+            
+            // Start displaying from the beginning of the filtered list
+            if (mDisplayProgramsTask != null) mDisplayProgramsTask.cancel(true);
+            mDisplayProgramsTask = new DisplayProgramsTask();
+            mDisplayProgramsTask.execute(0, Math.min(PAGE_SIZE - 1, mAllChannels.size() - 1));
+        } else {
+            mProgramRows.removeAllViews();
+            mChannels.removeAllViews();
+            mChannelStatus.setText("");
+            mSpinner.setVisibility(View.GONE);
+        }
+    }
+
+    private void updateGroupTabSelection() {
+        String selectedGroup = TvManager.getSelectedGroup();
+        
+        for (int i = 0; i < mGroupTabs.getChildCount(); i++) {
+            View child = mGroupTabs.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView tab = (TextView) child;
+                String tabGroupName = (String) tab.getTag();
+                
+                // Check if this tab is selected
+                boolean isSelected = (selectedGroup == null && tabGroupName == null) ||
+                                   (selectedGroup != null && selectedGroup.equals(tabGroupName));
+                
+                if (isSelected) {
+                    tab.setTextColor(getResources().getColor(android.R.color.white));
+                    tab.setTypeface(null, android.graphics.Typeface.BOLD);
+                } else {
+                    tab.setTextColor(getResources().getColor(android.R.color.darker_gray));
+                    tab.setTypeface(null, android.graphics.Typeface.NORMAL);
                 }
             }
         }

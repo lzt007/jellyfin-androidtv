@@ -48,6 +48,62 @@ fun loadLiveTvChannels(fragment: Fragment, callback: (channels: Collection<BaseI
 	}
 }
 
+fun loadLiveTvChannelsGrouped(
+	fragment: Fragment,
+	callback: (groupedChannels: List<org.jellyfin.androidtv.data.model.ChannelsWithGroups>?, allChannels: Collection<BaseItemDto>?) -> Unit
+) {
+	val liveTvPreferences by fragment.inject<LiveTvPreferences>()
+	val api by fragment.inject<ApiClient>()
+
+	fragment.lifecycleScope.launch {
+		val sortDatePlayed =
+			liveTvPreferences[LiveTvPreferences.channelOrder] == ItemSortBy.DATE_PLAYED.serialName
+
+		runCatching {
+			// Build query parameters
+			val queryParameters = buildMap<String, Any?> {
+				put("addCurrentProgram", true)
+				put("enableFavoriteSorting", liveTvPreferences[LiveTvPreferences.favsAtTop])
+				put("sortBy", if (sortDatePlayed) ItemSortBy.DATE_PLAYED.serialName else ItemSortBy.SORT_NAME.serialName)
+				put("sortOrder", if (sortDatePlayed) SortOrder.DESCENDING.serialName else SortOrder.ASCENDING.serialName)
+			}
+
+			// Make manual API request
+			val response = api.request(
+				pathTemplate = "/LiveTv/Channels/Groups",
+				pathParameters = emptyMap(),
+				queryParameters = queryParameters,
+				requestBody = null
+			).body.readRemaining().readText()
+
+			// Parse JSON response
+			val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+			val channelsWithGroups = json.decodeFromString<List<org.jellyfin.androidtv.data.model.ChannelsWithGroups>>(response)
+
+			// Sort logic: CCTV first, then by channel count desc, then by name length asc
+			val sortedGroups = channelsWithGroups.sortedWith(
+				compareByDescending<org.jellyfin.androidtv.data.model.ChannelsWithGroups> {
+					val name = it.Name.orEmpty()
+					name.contains("央视") || name.contains("CCTV", ignoreCase = true)
+				}.thenByDescending {
+					it.Channels.size
+				}.thenBy {
+					it.Name.orEmpty().length
+				}
+			)
+
+			// Flatten all channels from groups
+			val allChannels = sortedGroups.flatMap { it.Channels }
+
+			Pair(sortedGroups, allChannels)
+		}.fold(
+			onSuccess = { (groupedChannels, allChannels) -> callback(groupedChannels, allChannels) },
+			onFailure = { callback(null, null) },
+		)
+	}
+}
+
+
 fun getPrograms(
 	fragment: Fragment,
 	channelIds: Array<UUID>,

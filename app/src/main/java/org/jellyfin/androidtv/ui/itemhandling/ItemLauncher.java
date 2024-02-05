@@ -61,7 +61,7 @@ public class ItemLauncher {
                 else return Destinations.INSTANCE.librarySmartScreen(baseItem);
             case MUSIC:
             case LIVETV:
-                return Destinations.INSTANCE.librarySmartScreen(baseItem);
+                return Destinations.INSTANCE.getLiveTvGuide();
             default:
                 return Destinations.INSTANCE.libraryBrowser(baseItem);
         }
