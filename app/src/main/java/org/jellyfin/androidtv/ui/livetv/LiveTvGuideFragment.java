@@ -252,6 +252,11 @@ public class LiveTvGuideFragment extends Fragment implements LiveTvGuide, View.O
     }
 
     @Override
+    public void playChannel(UUID channelId) {
+        playbackHelper.getValue().retrieveAndPlay(channelId, false, requireContext());
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
 
@@ -793,7 +798,7 @@ public class LiveTvGuideFragment extends Fragment implements LiveTvGuide, View.O
 
     private void populateGroupTabs() {
         List<org.jellyfin.androidtv.data.model.ChannelsWithGroups> channelGroups = TvManager.getChannelGroups();
-        
+
         if (channelGroups == null || channelGroups.isEmpty()) {
             // No groups available, hide the group tabs
             mGroupTabsScroller.setVisibility(View.GONE);
@@ -839,7 +844,7 @@ public class LiveTvGuideFragment extends Fragment implements LiveTvGuide, View.O
         tabButton.setFocusable(true);
         tabButton.setClickable(true);
         tabButton.setBackgroundResource(R.drawable.jellyfin_button);
-        
+
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.MATCH_PARENT
@@ -862,7 +867,7 @@ public class LiveTvGuideFragment extends Fragment implements LiveTvGuide, View.O
     private void onGroupTabClicked(String groupName) {
         TvManager.setSelectedGroup(groupName);
         updateGroupTabSelection();
-        
+
         // Filter channels based on selected group (no API call)
         mAllChannels = TvManager.getChannelsForGroup(groupName);
         if (mAllChannels != null && !mAllChannels.isEmpty()) {
@@ -871,7 +876,7 @@ public class LiveTvGuideFragment extends Fragment implements LiveTvGuide, View.O
             mChannels.removeAllViews();
             mChannelStatus.setText("");
             mFilterStatus.setText("");
-            
+
             // Start displaying from the beginning of the filtered list
             if (mDisplayProgramsTask != null) mDisplayProgramsTask.cancel(true);
             mDisplayProgramsTask = new DisplayProgramsTask();
@@ -886,17 +891,17 @@ public class LiveTvGuideFragment extends Fragment implements LiveTvGuide, View.O
 
     private void updateGroupTabSelection() {
         String selectedGroup = TvManager.getSelectedGroup();
-        
+
         for (int i = 0; i < mGroupTabs.getChildCount(); i++) {
             View child = mGroupTabs.getChildAt(i);
             if (child instanceof TextView) {
                 TextView tab = (TextView) child;
                 String tabGroupName = (String) tab.getTag();
-                
+
                 // Check if this tab is selected
                 boolean isSelected = (selectedGroup == null && tabGroupName == null) ||
                                    (selectedGroup != null && selectedGroup.equals(tabGroupName));
-                
+
                 if (isSelected) {
                     tab.setTextColor(getResources().getColor(android.R.color.white));
                     tab.setTypeface(null, android.graphics.Typeface.BOLD);

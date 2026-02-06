@@ -10,4 +10,5 @@ interface LiveTvGuide {
 	fun showProgramOptions()
 	fun setSelectedProgram(programView: RelativeLayout)
 	fun refreshFavorite(channelId: UUID)
+	fun playChannel(channelId: UUID)
 }

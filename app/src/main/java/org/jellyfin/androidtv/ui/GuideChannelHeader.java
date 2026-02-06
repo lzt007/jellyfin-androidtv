@@ -44,6 +44,7 @@ public class GuideChannelHeader extends RelativeLayout {
         ));
         this.addView(v);
         this.setFocusable(true);
+        this.setClickable(true);
         ((TextView) findViewById(R.id.channelName)).setText(channel.getName());
         ((TextView) findViewById(R.id.channelNumber)).setText(channel.getNumber());
         mChannelImage = findViewById(R.id.channelImage);
@@ -51,6 +52,16 @@ public class GuideChannelHeader extends RelativeLayout {
 
         if (mChannel.getUserData() != null && mChannel.getUserData().isFavorite())
             mFavImage.setVisibility(View.VISIBLE);
+
+        this.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mTvGuide instanceof LiveTvGuideFragment) {
+                    LiveTvGuideFragment fragment = (LiveTvGuideFragment) mTvGuide;
+                    fragment.playChannel(mChannel.getId());
+                }
+            }
+        });
     }
 
     public void loadImage() {

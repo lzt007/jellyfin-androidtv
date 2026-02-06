@@ -465,6 +465,11 @@ public class CustomPlaybackOverlayFragment extends Fragment implements LiveTvGui
         }
     }
 
+    @Override
+    public void playChannel(UUID channelId) {
+        switchChannel(channelId);
+    }
+
     private View.OnKeyListener keyListener = new View.OnKeyListener() {
         @Override
         public boolean onKey(View v, int keyCode, KeyEvent event) {
